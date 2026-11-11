@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cómo se hizo · ¿Qué ve Internet de esta IP?</title>
+  <meta name="description" content="Del laboratorio de Nmap a una herramienta de reconocimiento pasivo: activo frente a pasivo, la Ley 1273 de 2009 (art. 269A), la base de 42 puertos, cifras calculadas, limitaciones y fuentes.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bangers&family=IBM+Plex+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="../css/estilo.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F9F9F7'/%3E%3Cpath d='M2 16C7 8 25 8 30 16C25 24 7 24 2 16Z' fill='none' stroke='%230A090A' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23CB433E'/%3E%3C/svg%3E">
+  <script type="module" src="../js/proceso.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+  <header class="cabecera">
+    <span class="kanji" aria-hidden="true">偵察</span>
+    <div class="titulo">
+      <p class="antetitulo">Cómo se hizo</p>
+      <h1>Mirar sin tocar</h1>
+    </div>
+    <nav class="nav">
+      <a class="boton-linea" href="../">Volver a la herramienta</a>
+      <button type="button" class="boton-linea" id="tema" aria-label="Cambiar tema">Tema: auto</button>
+    </nav>
+  </header>
+
+  <main class="articulo" id="contenido">
+    <nav class="indice vineta" aria-label="Índice">
+      <ol>
+        <li><a href="#origen">El laboratorio</a></li>
+        <li><a href="#activo">Activo y pasivo</a></li>
+        <li><a href="#nmap">Nmap frente a esto</a></li>
+        <li><a href="#ley">La ley</a></li>
+        <li><a href="#metodo">Método</a></li>
+        <li><a href="#cifras">Cifras</a></li>
+        <li><a href="#diseno">Diseño</a></li>
+        <li><a href="#limites">Limitaciones</a></li>
+        <li><a href="#fuentes">Fuentes</a></li>
+      </ol>
+    </nav>
+
+    <section class="bloque" id="origen">
+      <h2>El laboratorio de Nmap</h2>
+      <p>La idea sale de dos trabajos de la carrera de Ingeniería de Sistemas: unas notas de clase sobre hacking ético (qué lo separa del ataque: la autorización explícita, una metodología como NIST, OWASP o PTES, y el cumplimiento normativo) y un <strong>ejercicio de comandos Nmap</strong> hecho en septiembre de 2025, en la red de laboratorio y contra el propio portátil.</p>
+      <p>El ejercicio siguió cinco comandos. Lo interesante es lo que <em>no</em> salió como se esperaba:</p>
+      <div class="tabla-scroll" tabindex="0" role="region" aria-label="Resultados del ejercicio de Nmap">
+        <table class="tabla">
+          <thead><tr><th scope="col">Comando</th><th scope="col">Para qué</th><th scope="col">Se esperaba</th><th scope="col">Pasó</th></tr></thead>
+          <tbody>
+            <tr><td><code>nmap -sn 192.168.1.0/24</code></td><td>Descubrir equipos activos</td><td>~15 equipos</td><td>7 equipos</td></tr>
+            <tr><td><code>nmap -sS -F</code></td><td>Escaneo SYN rápido</td><td>22, 80, 443 abiertos</td><td>Falló por permisos; se cambió a <code>-sT</code>: ningún puerto abierto</td></tr>
+            <tr><td><code>nmap -sV -p 80,443</code></td><td>Versión de los servicios</td><td>Apache 2.4.41, OpenSSL 1.1.1</td><td>Sin puertos abiertos, sin versiones</td></tr>
+            <tr><td><code>nmap --script vuln</code></td><td>Vulnerabilidades conocidas</td><td>Log4j (CVE-2021-…)</td><td>Puertos cerrados: nada que revisar</td></tr>
+            <tr><td><code>nmap -O</code></td><td>Sistema operativo</td><td>Linux Ubuntu 20.04</td><td>Pide permisos de administrador</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Dos lecciones: escanear de verdad exige permisos, tiempo y un objetivo autorizado, y un equipo bien cerrado devuelve muy poco. Esta herramienta da la vuelta a la pregunta: en vez de <em>tocar</em> la máquina, mira lo que Internet ya sabe de ella.</p>
+    </section>
+
+    <section class="bloque" id="activo">
+      <h2>Reconocimiento activo y pasivo</h2>
+      <figure class="figura vineta">
+        <svg class="grafica diagrama" viewBox="0 0 640 250" role="img" aria-labelledby="dg-t">
+          <title id="dg-t">Activo: tus paquetes llegan a la IP. Pasivo: le preguntas a bases que ya la observaron, y la IP no se entera.</title>
+          <text class="g-cuad" x="10" y="24">ACTIVO (Nmap)</text>
+          <rect class="d-caja" x="10" y="38" width="120" height="50"/><text class="g-rotulo" x="70" y="68" text-anchor="middle">Tú</text>
+          <rect class="d-caja d-rojo" x="490" y="38" width="140" height="50"/><text class="g-rotulo d-sobre" x="560" y="68" text-anchor="middle">La IP</text>
+          <line class="d-flecha d-flecha-roja" x1="135" y1="56" x2="482" y2="56"/><text class="g-eje" x="310" y="48" text-anchor="middle">paquetes SYN, sondas, scripts</text>
+          <line class="d-flecha" x1="485" y1="74" x2="138" y2="74"/><text class="g-eje" x="310" y="92" text-anchor="middle">respuestas (tu IP queda registrada)</text>
+          <text class="g-cuad" x="10" y="140">PASIVO (esta página)</text>
+          <rect class="d-caja" x="10" y="154" width="120" height="50"/><text class="g-rotulo" x="70" y="184" text-anchor="middle">Tú</text>
+          <rect class="d-caja d-cian" x="250" y="154" width="150" height="50"/><text class="g-rotulo" x="325" y="176" text-anchor="middle">Shodan, RIPE,</text><text class="g-rotulo" x="325" y="194" text-anchor="middle">DNS público</text>
+          <rect class="d-caja d-gris" x="490" y="154" width="140" height="50"/><text class="g-rotulo" x="560" y="184" text-anchor="middle">La IP</text>
+          <line class="d-flecha" x1="135" y1="179" x2="242" y2="179"/><text class="g-eje" x="190" y="225" text-anchor="middle">una pregunta</text>
+          <line class="d-punteada" x1="405" y1="179" x2="485" y2="179"/><text class="g-eje" x="445" y="225" text-anchor="middle">ya la vieron antes</text>
+        </svg>
+        <figcaption>En el pasivo no sale ningún paquete hacia la IP. Lo que ves es lo que otros ya recolectaron, con la fecha que tenga.</figcaption>
+      </figure>
+      <dl class="glosario">
+        <dt>Reconocimiento activo</dt><dd>Enviar tráfico al objetivo para ver qué responde: barridos de ping, escaneo de puertos, detección de versiones. Es lo que hace Nmap. Rápido y preciso, pero deja rastro y, sin permiso, puede ser delito.</dd>
+        <dt>Reconocimiento pasivo</dt><dd>Reunir información sin tocar el objetivo: registros públicos de red, DNS, buscadores de dispositivos como Shodan. Más lento de actualizar, pero invisible para el objetivo y sin acceso a su sistema.</dd>
+        <dt>Puerto</dt><dd>Un número (0 a 65 535) que identifica a qué programa de un equipo va dirigido el tráfico. «Abierto» significa que algo está escuchando ahí.</dd>
+        <dt>CPE</dt><dd>Un nombre estándar para un producto y su versión, como <code>cpe:/a:apache:http_server:2.4.7</code>.</dd>
+        <dt>CVE</dt><dd>El identificador público de una vulnerabilidad conocida, como CVE-2021-44228 (Log4Shell).</dd>
+        <dt>ASN</dt><dd>El número de la red (sistema autónomo) que anuncia esa IP en Internet: suele decir de qué empresa u operador es.</dd>
+        <dt>PTR</dt><dd>El registro DNS «al revés»: dada una IP, qué nombre dice tener.</dd>
+      </dl>
+    </section>
+
+    <section class="bloque" id="nmap">
+      <h2>Nmap frente a este enfoque</h2>
+      <p>Cada comando del laboratorio tiene un equivalente pasivo, más pobre pero legal y sin permisos especiales:</p>
+      <div class="tabla-scroll" tabindex="0" role="region" aria-label="Equivalencias entre Nmap y la consulta pasiva">
+        <table class="tabla">
+          <thead><tr><th scope="col">En Nmap</th><th scope="col">Aquí</th><th scope="col">Qué se pierde</th></tr></thead>
+          <tbody>
+            <tr><td><code>-sn</code> (quién está vivo)</td><td>RIPEstat: quién anuncia la IP y su prefijo</td><td>No sabe si el equipo está encendido hoy</td></tr>
+            <tr><td><code>-sS / -sT -F</code> (puertos)</td><td>InternetDB: puertos que Shodan vio abiertos</td><td>Solo los que Shodan rastrea, y con días o semanas de retraso</td></tr>
+            <tr><td><code>-sV</code> (versiones)</td><td>InternetDB: lista de CPE</td><td>No dice qué CPE va con qué puerto</td></tr>
+            <tr><td><code>--script vuln</code></td><td>InternetDB: CVE cruzados por versión</td><td>No prueba nada: solo compara números de versión</td></tr>
+            <tr><td><code>-O</code> (sistema operativo)</td><td>CPE de tipo «o» (sistema operativo), si lo hay</td><td>Muchas veces no aparece</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="nota-fuente">Para practicar escaneo activo sin problemas legales existe <code>scanme.nmap.org</code>, un servidor que el proyecto Nmap autoriza a escanear de forma moderada. Por eso es uno de los ejemplos.</p>
+    </section>
+
+    <section class="bloque" id="ley">
+      <h2>La ley: art. 269A</h2>
+      <p>En Colombia, la <strong>Ley 1273 de 2009</strong> añadió al Código Penal los delitos informáticos. El primero es el de acceso abusivo:</p>
+      <blockquote class="cita">
+        <p>«Artículo 269A. Acceso abusivo a un sistema informático. El que, sin autorización o por fuera de lo acordado, acceda en todo o en parte a un sistema informático protegido o no con una medida de seguridad, o se mantenga dentro del mismo en contra de la voluntad de quien tenga el legítimo derecho a excluirlo, incurrirá en pena de prisión de cuarenta y ocho (48) a noventa y seis (96) meses y en multa de 100 a 1.000 salarios mínimos legales mensuales vigentes.»</p>
+      </blockquote>
+      <h3>Por qué esta consulta es legal</h3>
+      <ul>
+        <li><strong>No hay acceso.</strong> La página no envía nada a la IP consultada: no se conecta, no prueba claves, no «entra». Pregunta a servicios públicos (Shodan, RIPE NCC, Google) que publican esos datos para cualquiera.</li>
+        <li><strong>Los datos ya son públicos.</strong> El registro de quién anuncia una red y el DNS existen para que Internet funcione; InternetDB es un servicio abierto y gratuito.</li>
+        <li><strong>El uso sí importa.</strong> Saber que un puerto está abierto no es delito; intentar entrar por él sin permiso sí puede serlo (269A), igual que obstaculizar el sistema (269B). Por eso el aviso: solo IPs propias o con permiso.</li>
+      </ul>
+      <p class="nota-fuente">Esto es una explicación de divulgación, no asesoría legal. Para ver cuántas denuncias hay por cada artículo de la Ley 1273, mira la herramienta hermana <a href="https://ale0009.github.io/delitos-informaticos-colombia/">delitos informáticos en Colombia</a>.</p>
+    </section>
+
+    <section class="bloque" id="metodo">
+      <h2>Método</h2>
+      <ol class="tuberia">
+        <li><span class="paso">1 · entrada</span><strong>¿IP o dominio?</strong><small>Valida IPv4/IPv6, limpia URLs y puertos, pasa tildes a punycode.</small></li>
+        <li><span class="paso">2 · DNS</span><strong>Resolver</strong><small>Si es dominio, pide su A (o AAAA) a dns.google.</small></li>
+        <li><span class="paso">3 · filtro</span><strong>¿Es pública?</strong><small>Las IP privadas o de documentación no se consultan: Internet no las ve.</small></li>
+        <li><span class="paso">4 · fuentes</span><strong>Cuatro a la vez</strong><small>InternetDB, RIPEstat (prefijo y país) y el PTR. Si una falla, las demás siguen.</small></li>
+        <li><span class="paso">5 · base</span><strong>42 puertos</strong><small>Cada puerto se cruza con una ficha: servicio, riesgo y si conviene cerrarlo.</small></li>
+        <li><span class="paso">6 · veredicto</span><strong>Nivel</strong><small>Alto si hay un puerto de riesgo alto; medio si hay medios, sin ficha o CVE; bajo si no.</small></li>
+      </ol>
+      <p>La regla del veredicto es deliberadamente simple: <strong>basta un puerto de riesgo alto</strong> para marcar la IP como alta, porque a un atacante le basta una puerta. Los puertos que no están en la base se marcan «averigua» y suben el nivel a medio: un servicio que nadie sabe explicar es el que más conviene revisar.</p>
+      <p>Toda la lógica está en funciones puras (<code>js/entrada.js</code>, <code>js/puertos.js</code>, <code>js/fuentes.js</code>, <code>js/consulta.js</code>) con <span data-dato="n-pruebas">31</span> pruebas automáticas sobre respuestas reales grabadas el 10 de noviembre de 2026.</p>
+    </section>
+
+    <section class="bloque" id="cifras">
+      <h2>Cifras <span class="tag">calculado aquí</span></h2>
+      <div class="dos-col">
+        <figure class="figura vineta">
+          <h3>La base: <span data-dato="b-total">42</span> puertos por riesgo</h3>
+          <div class="g-caja" id="g-riesgo"></div>
+          <figcaption><span data-dato="b-alto">25</span> de <span data-dato="b-total">42</span> puertos (<span data-dato="b-pc">60 %</span>) son de riesgo alto, y todos ellos llevan la recomendación de cerrarlos. <span data-dato="b-bd">6</span> son bases de datos, que nunca deberían hablar directo con Internet.</figcaption>
+        </figure>
+        <figure class="figura vineta">
+          <h3>¿Qué hacer con cada puerto?</h3>
+          <div class="g-caja" id="g-accion"></div>
+          <figcaption>Solo <span data-dato="b-normal">8</span> de los <span data-dato="b-total">42</span> son «normales» para un servicio público. El resto se cierra o se limita a quien lo necesita.</figcaption>
+        </figure>
+      </div>
+      <figure class="figura vineta">
+        <h3>scanme.nmap.org: CVE asociados por año del identificador</h3>
+        <div class="g-caja" id="g-scanme"></div>
+        <figcaption id="cap-scanme">Cargando los datos grabados…</figcaption>
+      </figure>
+      <div class="tabla-scroll vineta" tabindex="0" role="region" aria-labelledby="t-ejemplos">
+        <table class="tabla">
+          <caption id="t-ejemplos">Los ejemplos de la herramienta, consultados el 10 nov 2026 (datos guardados en <code>datos/</code>).</caption>
+          <thead><tr><th scope="col">Entrada</th><th scope="col">Nivel</th><th scope="col" class="num">Puertos</th><th scope="col">Cerrar · limitar · normal · ¿?</th><th scope="col" class="num">CVE</th></tr></thead>
+          <tbody id="tabla-ejemplos"><tr><td colspan="5">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bloque" id="diseno">
+      <h2>Decisiones de diseño</h2>
+      <ul class="decisiones">
+        <li><strong>Tarjetas, no tabla.</strong> Cada puerto necesita tres cosas legibles en el móvil: qué es, por qué preocupa y qué hacer. Una tabla de cinco columnas no cabe en 390 px.</li>
+        <li><strong>Un solo consejo por puerto, en verbo.</strong> «Ciérralo», «Limítalo», «Normal», «Averigua». La persona que consulta suele querer saber qué hacer, no un puntaje.</li>
+        <li><strong>Los puertos sin ficha van juntos.</strong> En la primera versión cada uno tenía su tarjeta con el mismo texto (1.1.1.1 tiene seis): se agruparon en una.</li>
+        <li><strong>Los CVE no se pegan a un puerto.</strong> InternetDB no da esa relación y no se inventa: van en su propio panel, enlazados a la herramienta hermana para priorizarlos.</li>
+        <li><strong>El aviso ético va arriba y en rojo,</strong> junto al campo de búsqueda, no en el pie.</li>
+      </ul>
+      <div class="dos-col">
+        <div>
+          <h3>Paleta</h3>
+          <div class="paleta">
+            <span style="--c:#F9F9F7">Papel <code>#F9F9F7</code></span>
+            <span style="--c:#0A090A; --sobre:#F9F9F7">Tinta <code>#0A090A</code></span>
+            <span style="--c:#CB433E; --sobre:#FFFFFF">Riesgo alto <code>#CB433E</code></span>
+            <span style="--c:#E8B44A">Riesgo medio <code>#E8B44A</code></span>
+            <span style="--c:#438FB8">Riesgo bajo <code>#438FB8</code></span>
+            <span style="--c:#141C33; --sobre:#F2ECE0">Noche <code>#141C33</code></span>
+          </div>
+        </div>
+        <div>
+          <h3>Boceto de una tarjeta</h3>
+          <svg class="grafica boceto-svg" viewBox="0 0 300 150" role="img" aria-label="Boceto: borde izquierdo de color por riesgo, número grande, servicio, explicación y consejo">
+            <rect class="d-caja" x="4" y="4" width="292" height="142"/>
+            <rect class="d-rojo" x="4" y="4" width="8" height="142"/>
+            <text class="d-num" x="22" y="40">3389</text>
+            <text class="g-rotulo" x="110" y="28">RDP</text><text class="g-eje" x="110" y="44">Escritorio remoto</text>
+            <rect class="d-rojo" x="222" y="20" width="64" height="18"/><text class="g-eje d-sobre" x="254" y="33" text-anchor="middle">alto</text>
+            <line class="d-linea" x1="22" y1="62" x2="280" y2="62"/><line class="d-linea" x1="22" y1="76" x2="260" y2="76"/><line class="d-linea" x1="22" y1="90" x2="200" y2="90"/>
+            <rect class="d-tenue" x="22" y="104" width="262" height="30"/><text class="g-rotulo" x="32" y="124">¿Cerrarlo? Ciérralo.</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloque" id="limites">
+      <h2>Limitaciones</h2>
+      <ul>
+        <li><strong>Los datos de Shodan pueden estar desactualizados.</strong> InternetDB se renueva cada cierto tiempo (días o semanas) y no dice la fecha de cada dato. Un puerto que cerraste ayer puede seguir apareciendo, y uno que abriste hoy no aparecerá.</li>
+        <li><strong>Shodan no mira todos los puertos.</strong> Rastrea una lista de puertos frecuentes. «Nada a la vista» no significa «todo cerrado».</li>
+        <li><strong>Los CVE son por versión, no comprobados.</strong> Distribuciones como Ubuntu corrigen fallos sin cambiar el número de versión, así que hay falsos positivos. En scanme.nmap.org, <span data-dato="s-viejos">15</span> de sus CVE tienen un identificador anterior a 2014: el cruce es por rangos de versión y conviene verificarlo.</li>
+        <li><strong>CDN y anycast.</strong> Para IP de Cloudflare o Google ves la red del proveedor, no el servidor de origen. Los puertos 2082–2096 de 1.1.1.1 son puertos que Cloudflare acepta para reenviar tráfico, no servicios sueltos.</li>
+        <li><strong>Un dominio, una IP.</strong> Si el dominio apunta a varias IP, se analiza la primera y se avisa de cuántas más hay.</li>
+        <li><strong>La base de puertos es una guía general</strong> de 42 entradas: un número de puerto no garantiza qué servicio corre ahí.</li>
+        <li><strong>El país es aproximado</strong> (MaxMind GeoLite vía RIPEstat) y en redes anycast suele no saberse.</li>
+      </ul>
+      <div class="vineta errata">
+        <h3>Fe de erratas del trabajo de clase</h3>
+        <ul>
+          <li>El comando 2 se titula «Escaneo SYN», pero al fallar por permisos se cambió a <code>-sT</code>, que es un escaneo de <em>conexión completa</em> (TCP connect), no SYN. El título no se actualizó.</li>
+          <li>El resultado esperado del comando 4 dice «CVE-2021 (Log4j)»: el identificador completo es <strong>CVE-2021-44228</strong>.</li>
+          <li>Al cambiar el comando 2 a <code>-sT</code> se mantuvo «Nivel de ruido: Medio», pero <code>-sT</code> hace más ruido que <code>-sS</code>: completa cada conexión y deja huella en los registros del servicio.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="bloque" id="fuentes">
+      <h2>Fuentes</h2>
+      <ol class="fuentes">
+        <li>Shodan. <a href="https://internetdb.shodan.io/">InternetDB API</a>: puertos, CPE, nombres, etiquetas y CVE por IP; gratis y sin clave.</li>
+        <li>RIPE NCC. <a href="https://stat.ripe.net/docs/data-api/">RIPEstat Data API</a>: llamadas <code>prefix-overview</code> y <code>maxmind-geo-lite</code>.</li>
+        <li>Google Public DNS. <a href="https://developers.google.com/speed/public-dns/docs/doh/json">JSON API para DNS sobre HTTPS</a>.</li>
+        <li>Congreso de Colombia. <a href="https://www.secretariasenado.gov.co/senado/basedoc/ley_1273_2009.html">Ley 1273 de 2009</a>, «De la protección de la información y de los datos».</li>
+        <li>Nmap. <a href="https://nmap.org/book/man-port-scanning-techniques.html">Técnicas de escaneo de puertos</a> y <a href="http://scanme.nmap.org/">scanme.nmap.org</a>.</li>
+        <li>IANA. <a href="https://www.iana.org/assignments/iana-ipv4-special-registry/">Registro de direcciones IPv4 de uso especial</a> y su <a href="https://www.iana.org/assignments/iana-ipv6-special-registry/">equivalente IPv6</a>.</li>
+        <li>Trabajos de clase propios: «Ejercicio Comandos Nmap» (sep. 2025) y notas de hacking ético, Ingeniería de Sistemas.</li>
+      </ol>
+    </section>
+
+    <a class="volver" href="../">Volver: ¿qué ve Internet de esta IP?</a>
+  </main>
+
+  <footer class="pie">
+    <p>Datos públicos consultados desde el navegador. Esto no escanea ni accede a ningún sistema.</p>
+    <p class="creditos"><a href="https://github.com/ale0009" target="_blank" rel="noopener">Mario Puerta «ale0009»</a> × <a href="https://www.linkedin.com/in/davidalexanderrinconcorredorkuronoma/" target="_blank" rel="noopener">David Rincón «Kuronoma»</a> <a href="#">Portafolio</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "ip-expuesta",
+  "version": "1.0.0",
+  "description": "¿Qué ve Internet de esta IP? Reconocimiento pasivo: puertos, software y CVE que Shodan ya vio (InternetDB), ASN y prefijo (RIPEstat) y nombre inverso (DNS sobre HTTPS). No escanea nada. Página estática sin build.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "Mario Alejandro Puerta Alarcón",
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=20" }
+}

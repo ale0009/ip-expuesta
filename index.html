@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>¿Qué ve Internet de esta IP?</title>
+  <meta name="description" content="Reconocimiento pasivo de una IP o dominio: los puertos, el software y los CVE que Shodan ya vio (InternetDB), su red y prefijo (RIPEstat) y su nombre inverso (DNS). Explica el riesgo de cada puerto y si conviene cerrarlo. No escanea nada.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bangers&family=IBM+Plex+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/estilo.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F9F9F7'/%3E%3Cpath d='M2 16C7 8 25 8 30 16C25 24 7 24 2 16Z' fill='none' stroke='%230A090A' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23CB433E'/%3E%3C/svg%3E">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#veredicto">Saltar al resultado</a>
+  <header class="cabecera">
+    <span class="kanji" aria-hidden="true">露出</span>
+    <div class="titulo">
+      <p class="antetitulo">Reconocimiento pasivo · sin escanear</p>
+      <h1>¿Qué ve Internet de esta IP?</h1>
+    </div>
+    <nav class="nav">
+      <a class="boton-linea" href="proceso/">Cómo se hizo</a>
+      <button type="button" class="boton-linea" id="tema" aria-label="Cambiar tema">Tema: auto</button>
+    </nav>
+  </header>
+
+  <main class="tablero">
+    <section class="consulta vineta" aria-labelledby="consulta-t">
+      <h2 id="consulta-t" class="visual-oculto">Consultar una IP o un dominio</h2>
+      <form id="form" class="form" novalidate>
+        <label for="entrada" class="etiqueta">IP (v4 o v6) o dominio</label>
+        <div class="fila-form">
+          <input id="entrada" name="entrada" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false"
+                 placeholder="1.1.1.1" aria-describedby="ayuda-entrada">
+          <button type="submit" class="boton-tinta" id="consultar">Mirar</button>
+        </div>
+        <p id="ayuda-entrada" class="ayuda">Si escribes un dominio, primero lo convierto en su IP.</p>
+      </form>
+      <div class="ejemplos" role="group" aria-label="Ejemplos">
+        <span class="etiqueta">Ejemplos</span>
+        <button type="button" class="mini" data-ejemplo="1.1.1.1">Cloudflare DNS</button>
+        <button type="button" class="mini" data-ejemplo="8.8.8.8">Google DNS</button>
+        <button type="button" class="mini" data-ejemplo="9.9.9.9">Quad9</button>
+        <button type="button" class="mini" data-ejemplo="scanme.nmap.org">scanme.nmap.org</button>
+        <button type="button" class="mini" data-ejemplo="2606:4700:4700::1111">IPv6</button>
+      </div>
+      <div class="aviso-etico" role="note">
+        <p class="aviso-t">Solo IPs tuyas o con permiso</p>
+        <p>Esta página <strong>no escanea</strong>: no envía ni un paquete a la IP. Lee lo que Shodan ya recolectó y registros públicos de red. Aun así, usa lo que veas para proteger lo tuyo, no para atacar lo ajeno.</p>
+        <p class="aviso-n">Lo que escribes viaja a Shodan (InternetDB), RIPE NCC (RIPEstat) y Google (DNS). <code>scanme.nmap.org</code> es un servidor que el proyecto Nmap ofrece para practicar.</p>
+      </div>
+    </section>
+
+    <section class="respuesta vineta" id="respuesta" data-tono="carga" aria-live="polite" aria-busy="true" aria-labelledby="veredicto">
+      <span class="onoma" id="onoma" aria-hidden="true">OTEANDO…</span>
+      <div class="cabeza-res">
+        <div class="sello" id="sello" aria-hidden="true">…</div>
+        <div class="textos-res">
+          <p class="pregunta" id="pregunta">Consultando…</p>
+          <p class="veredicto" id="veredicto"><span class="cargando-txt">Preguntando a Shodan, RIPE y al DNS…</span></p>
+          <p class="sub-veredicto" id="sub-veredicto"></p>
+        </div>
+      </div>
+      <div class="senales" id="senales"></div>
+      <p class="estado" id="estado"><span class="chip chip-carga">Cargando</span></p>
+    </section>
+
+    <section class="puertos vineta" aria-labelledby="puertos-t">
+      <div class="lista-cab">
+        <h2 id="puertos-t">Puerto por puerto</h2>
+        <p class="resumen" id="resumen-puertos"></p>
+      </div>
+      <ul class="tarjetas" id="tarjetas"></ul>
+      <p class="ayuda">El número de puerto dice qué servicio <em>suele</em> haber, no cuál hay. El software se asocia por la lista de productos que anuncia Shodan.</p>
+    </section>
+
+    <section class="cves vineta" aria-labelledby="cves-t">
+      <h2 id="cves-t">CVE que Shodan le asocia</h2>
+      <div id="cves-cuerpo"></div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p>Datos: <a href="https://internetdb.shodan.io/">InternetDB de Shodan</a> (puertos, software y CVE vistos), <a href="https://stat.ripe.net/docs/data-api/">RIPEstat</a> (red, prefijo y país aproximado con MaxMind GeoLite) y el <a href="https://developers.google.com/speed/public-dns/docs/doh/json">DNS sobre HTTPS de Google</a> (nombre inverso y dominios), consultados desde tu navegador. Es una foto de lo que ya se recolectó: puede estar desactualizada y no reemplaza una auditoría autorizada.</p>
+    <p class="creditos"><a href="https://github.com/ale0009" target="_blank" rel="noopener">Mario Puerta «ale0009»</a> × <a href="https://www.linkedin.com/in/davidalexanderrinconcorredorkuronoma/" target="_blank" rel="noopener">David Rincón «Kuronoma»</a> <a href="#">Portafolio</a></p>
+  </footer>
+</body>
+</html>
