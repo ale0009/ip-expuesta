@@ -5,10 +5,11 @@ import { consultar, crearPedirVivo, crearPedirGuardado, crearPedirConRespaldo } 
 import { evaluarPuertos, softwareSuelto, veredicto, RIESGOS, ACCIONES } from './puertos.js';
 import { ordenarCves, porAnio, enlaceCve, enlaceLote } from './cves.js';
 import { barrasAnios } from './graficas.js';
+import { proveedorPublico, NOTA_PROVEEDOR } from './proveedores.js';
 
 const $ = (id) => document.getElementById(id);
 const RESPALDO = { ruta: 'datos/ejemplo-2026-11-10.json', fecha: '10 nov 2026' };
-const EJEMPLO_INICIAL = '1.1.1.1';
+const EJEMPLO_INICIAL = 'scanme.nmap.org';
 const MAX_CHIPS = 30;
 
 const params = new URLSearchParams(location.search);
@@ -217,6 +218,8 @@ function pintarResultado(r, origen) {
       .filter(([k]) => v.acciones[k]).map(([k, uno, varios]) => plural(v.acciones[k], uno, varios));
     const sub = [acc.join(' · ')];
     if (v.nVulns) sub.push(el('span', { class: 'regla', text: ` · ${plural(v.nVulns, 'CVE asociado', 'CVE asociados')}` }));
+    const prov = proveedorPublico(r.red);
+    if (prov) sub.push(el('span', { class: 'nota-proveedor', text: `${prov}. ${NOTA_PROVEEDOR}` }));
     cabeza(v.nivel, quien, v.puertos ? `${plural(v.puertos, 'puerto', 'puertos')} a la vista` : 'Sin puertos, con CVE', sub);
   }
   pintarSenales(r);

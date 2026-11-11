@@ -14,7 +14,7 @@ Por cada puerto explica en lenguaje claro qué servicio suele ser, qué riesgo i
 
 ## Cómo usarlo
 
-- Abre `index.html` desde un servidor estático (`python3 -m http.server`) o en GitHub Pages. Arranca con el ejemplo `1.1.1.1`.
+- Abre `index.html` desde un servidor estático (`python3 -m http.server`) o en GitHub Pages. Arranca con el ejemplo `scanme.nmap.org`, el servidor que el proyecto Nmap ofrece para practicar.
 - `?ip=scanme.nmap.org` abre directamente una consulta.
 - `?sin-conexion` usa las respuestas reales guardadas el 10 nov 2026 en `datos/` (solo los ejemplos).
 - Pruebas: `node --test` (Node 20+). Volver a grabar los datos: `node scripts/capturar.mjs datos/ejemplo-AAAA-MM-DD.json 1.1.1.1 …`.

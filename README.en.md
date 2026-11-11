@@ -14,7 +14,7 @@ For each port it explains in plain language (Spanish UI) which service it usuall
 
 ## How to use
 
-- Serve the folder statically (`python3 -m http.server`) or via GitHub Pages. It opens with the `1.1.1.1` example.
+- Serve the folder statically (`python3 -m http.server`) or via GitHub Pages. It opens with the `scanme.nmap.org` example, the server the Nmap project offers for practice.
 - `?ip=scanme.nmap.org` opens a query directly.
 - `?sin-conexion` uses the real responses saved on 10 Nov 2026 in `datos/` (examples only).
 - Tests: `node --test` (Node 20+). Re-record data: `node scripts/capturar.mjs datos/ejemplo-YYYY-MM-DD.json 1.1.1.1 …`.
