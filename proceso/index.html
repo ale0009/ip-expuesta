@@ -216,9 +216,8 @@
       <div class="vineta errata">
         <h3>Fe de erratas del trabajo de clase</h3>
         <ul>
-          <li>El comando 2 se titula «Escaneo SYN», pero al fallar por permisos se cambió a <code>-sT</code>, que es un escaneo de <em>conexión completa</em> (TCP connect), no SYN. El título no se actualizó.</li>
-          <li>El resultado esperado del comando 4 dice «CVE-2021 (Log4j)»: el identificador completo es <strong>CVE-2021-44228</strong>.</li>
-          <li>Al cambiar el comando 2 a <code>-sT</code> se mantuvo «Nivel de ruido: Medio», pero <code>-sT</code> hace más ruido que <code>-sS</code>: completa cada conexión y deja huella en los registros del servicio.</li>
+          <li><strong>Comando 2, el nombre del escaneo.</strong> <b>El trabajo decía</b> «Escaneo SYN», pero el comando que se ejecutó fue <code>nmap -sT</code>: el <code>-sS</code> (SYN) falló por falta de permisos y se cambió sin actualizar el título. <b>Lo correcto:</b> <code>-sT</code> es un escaneo de <em>conexión completa</em> (TCP connect): abre la conexión entera en cada puerto, mientras que el SYN la deja a medias. <b>La herramienta</b> no escanea nada; solo lee lo que Shodan ya vio.</li>
+          <li><strong>Comando 2, el nivel de ruido.</strong> <b>El trabajo decía</b> «Nivel de ruido: Medio», el mismo que había puesto para <code>-sS</code>. <b>Lo correcto:</b> <code>-sT</code> hace más ruido que <code>-sS</code>, porque completa cada conexión y deja huella en los registros del servicio; su nivel debió quedar por encima del de <code>-sS</code>. <b>La herramienta</b> no hace ruido: no envía ni un paquete a la IP.</li>
         </ul>
       </div>
     </section>
